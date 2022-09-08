@@ -1,5 +1,11 @@
+"""
+The backend module that provides the simulator of the lock-in measurements
+Authors: Andrii Sokolov, Elena Blokhina
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
+from console_progressbar import ProgressBar
 from scipy import signal
 
 
@@ -146,6 +152,7 @@ class Lockin:
                 self.telegraph[k] = self.non_stat_noise * i_max
             else:
                 self.telegraph[k] = self.non_stat_noise * i_min
+        self.i_dut += self.telegraph
         # Calculating the voltage after the TiA:
         self.u_tia = self.sr570_tia(self.i_dut)
         # Adding the noise to the TiA signal:
@@ -257,9 +264,7 @@ class DUTSemiconductor:
         return np.interp(v_in, self.v_ds, self.current)
 
 
-def telegraphic_noise_coefficient(
-    v_in: float, vb_max: list = (-1e-2, -5e-3), w_max=(3e-6, 3e-6)
-):
+def telegraphic_noise_coefficient(v_in: float, vb_max: list = (5e-3,), w_max=(3e-5,)):
     """Telegraphic noise coefficients returns coefficient from 0 to 1 depending on the bias voltage
 
     Args:
@@ -277,15 +282,25 @@ def telegraphic_noise_coefficient(
 
 
 if __name__ == "__main__":
+    pb = ProgressBar(
+        total=100,
+        prefix="Progress",
+        decimals=3,
+        length=50,
+        fill="#",
+        zfill="-",
+    )
     SC = DUTSemiconductor()
     r_out = []
     t_out = []
-    v_bias_test = np.linspace(-0.02, 0.02, 100)
-    for vb in v_bias_test:
+    n_vbiases = 100
+    v_bias_test = np.linspace(-0.02, 0.02, n_vbiases)
+    for vb, i in zip(v_bias_test, range(n_vbiases)):
         Li = Lockin(v_bias=vb)
         Li.lock_in_measurement(SC.i_interp)
         r_out.append(Li.sr865a_r[-1])
         t_out.append(Li.sr865a_theta[-1])
+        pb.print_progress_bar(i)
     plt.plot(v_bias_test, r_out, "k.")
     ax = plt.twinx()
     ax.plot(v_bias_test, t_out, "r", linewidth=0.5)
