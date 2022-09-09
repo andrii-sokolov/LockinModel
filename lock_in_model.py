@@ -238,8 +238,10 @@ class DUTSemiconductor:
         for vg, g, w in zip(vg_max, g_max, w_max):
             self.g_ds += g * np.exp(-np.square(self.v_ds - vg) / w)
         # integrating the current array:
-        for i in range(len(self.v_ds)):
-            self.current[i] = np.sum(self.g_ds[:i]) * (self.v_ds[1] - self.v_ds[0])
+        for iter_vds in range(len(self.v_ds)):
+            self.current[iter_vds] = np.sum(self.g_ds[:iter_vds]) * (
+                self.v_ds[1] - self.v_ds[0]
+            )
 
     def g_interp(self, v_in: float):
         """interpolation function that returnes the conductancre
